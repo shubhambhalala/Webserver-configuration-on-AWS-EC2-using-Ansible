@@ -1,0 +1,28 @@
+- name: creating vpc
+            ec2_vpc:
+                    aws_secret_key: "{{ awssecret }}"
+                    aws_access_key: "{{ awsaccess }}"
+                    state: present
+                    cidr_block: 172.22.0.0/16
+                    region: ap-south-1
+                    subnets:
+                            - cidr: 172.22.1.0/24
+                              az: ap-south-2a
+                            - cidr: 172.22.2.0/24
+                              az: ap-south-2b
+                            - cidr: 172.22.3.0/24
+                              az: ap-south-2c
+                    internet_gateway: True
+                    route_tables:
+                            - subnets:
+                                    - 172.22.2.0/24
+                                    - 172.22.3.0/24
+                              routes:
+                                      - dest: 0.0.0.0/24
+                                        gw: igw
+                            - subnets:
+                                    - 172.22.1.0/24
+                              routes:
+                                      - dest: 0.0.0.0/24
+                                        gw: igw
+            register: vpc

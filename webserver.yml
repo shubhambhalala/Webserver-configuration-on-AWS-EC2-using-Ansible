@@ -1,0 +1,81 @@
+- name: Webserver on aws instance
+  hosts: localhost
+  vars_files:
+          - vars.yml 
+  tasks:
+          - name: getting vpc subnet info
+            ec2_vpc_subnet_info:
+                    aws_secret_key: "{{ awssecret }}"
+                    aws_access_key: "{{ awsaccess }}"
+            register: vpc
+          - debug:
+                  var: vpc.subnets[0].subnet_id          
+
+          - name: creating security group for webserver
+            ec2_group:
+                    name: "webosansible"
+                    description: sg with ssh and http
+                    region: ap-south-1
+                    aws_secret_key: "{{ awssecret }}"
+                    aws_access_key: "{{ awsaccess }}"
+                    rules:
+                            - proto: tcp
+                              from_port: 80
+                              to_port: 80
+                              cidr_ip: 0.0.0.0/0
+                            - proto: tcp
+                              from_port: 22
+                              to_port: 22
+                              cidr_ip: 0.0.0.0/0
+            register: sgweb
+          - name: creating key
+            ec2_key:
+                    name: ansiblewebos
+                    region: ap-south-1
+                    aws_secret_key: "{{ awssecret }}"
+                    aws_access_key: "{{ awsaccess }}"
+            register: ec2key
+
+          - name: saving key
+            copy:
+                    content: "{{ ec2key.key.private_key }}"
+                    dest: "/ansible_code/aws-ec2/ansiblewebos"
+                    mode: "0600" 
+            
+          - name: provisioning and configuring ec2 instance
+            ec2:
+                    assign_public_ip: yes
+                    aws_access_key: "{{ awsaccess }}"
+                    aws_secret_key: "{{ awssecret }}"
+                    count: 1
+                    group_id: "{{ sgweb.group_id }}"
+                    image: ami-0ebc1ac48dfd14136
+                    instance_tags:
+                            webos: httpd
+                    instance_type: t2.micro
+                    vpc_subnet_id: "{{ vpc.subnets[0].subnet_id }}"
+                    wait: yes
+                    key_name: "{{ ec2key.key.name }}"
+                    region: ap-south-1
+                    state: present
+                    user_data: | 
+                               #!/bin/bash
+                               sudo yum install httpd php -y
+                               sudo systemctl start httpd
+                               sudo systemctl enable httpd
+                               echo "Website created by Shubham Bhalala" >> /var/www/html/index.html
+          - name: gathering instance info
+            ec2_instance_info:
+                    aws_access_key: "{{ awsaccess }}"
+                    aws_secret_key: "{{ awssecret }}"
+                    filters:
+                            instance-state-name: running
+            register: ec2instance
+          - name: url to access website
+            debug:
+                    var: ec2instance.instances[0].network_interfaces[0].association.public_dns_name 
+
+
+
+
+
