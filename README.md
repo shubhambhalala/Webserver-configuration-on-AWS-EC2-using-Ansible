@@ -7,3 +7,6 @@ What unique you will get:
 🌟 Without even going once to the portal you can provision ec2 and configure it as a web server and launch your website.
 
 🌟 Get the URL of the webserver while executing the ansible code. You again don't have to use AWS Portal.
+
+
+🌟Writeup: https://tinyurl.com/yxddj9vr
